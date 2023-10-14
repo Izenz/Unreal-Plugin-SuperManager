@@ -47,8 +47,6 @@ void UQuickAssetAction::AddPrefixes()
 	TArray<UObject*> SelectedObjects = UEditorUtilityLibrary::GetSelectedAssets();
 	uint32 counter = 0;
 
-	FixUpRedirectors();
-
 	for (UObject* SelectedObject : SelectedObjects)
 	{
 		if (!SelectedObject)	continue;
@@ -87,6 +85,8 @@ void UQuickAssetAction::RemoveUnusedAssets()
 {
 	TArray<FAssetData> SelectedAssetsData = UEditorUtilityLibrary::GetSelectedAssetData();
 	TArray<FAssetData> UnusedAssetsData;
+
+	FixUpRedirectors();
 
 	for (const FAssetData& SelectedAssetData : SelectedAssetsData)
 	{
