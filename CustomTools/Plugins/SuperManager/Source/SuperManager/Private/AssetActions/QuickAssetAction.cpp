@@ -123,8 +123,8 @@ void UQuickAssetAction::RenameSelectedAssets(const FString& NewName)
 	{
 		if (!SelectedObject)	continue;
 
-		const FString NewNameWithSufix = NewName + TEXT("_" + FString::FromInt(counter + 1));
-		UEditorUtilityLibrary::RenameAsset(SelectedObject, NewNameWithSufix);
+		const FString NewNameWithSuffix = NewName + TEXT("_" + FString::FromInt(counter + 1));
+		UEditorUtilityLibrary::RenameAsset(SelectedObject, NewNameWithSuffix);
 		++counter;
 	}
 
