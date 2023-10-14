@@ -70,7 +70,7 @@ void UQuickAssetAction::AddPrefixes()
 			OldName.RemoveFromStart(TEXT("M_"));
 			OldName.RemoveFromEnd(TEXT("_Inst"));
 		}
-
+		
 		const FString NewNameWithPrefix = *PrefixFound + OldName;
 		UEditorUtilityLibrary::RenameAsset(SelectedObject, NewNameWithPrefix);
 		++counter;
@@ -106,6 +106,32 @@ void UQuickAssetAction::RemoveUnusedAssets()
 	int32 numOfAssetsDeleted = ObjectTools::DeleteAssets(UnusedAssetsData);
 	if (numOfAssetsDeleted == 0)	return;
 	ShowNotifyInfo(TEXT("Successfully deleted ") + FString::FromInt(numOfAssetsDeleted) + TEXT(" unused assets."));
+}
+
+void UQuickAssetAction::RenameSelectedAssets(const FString& NewName)
+{
+	if (NewName.IsEmpty())
+	{
+		ShowMessageDialog(EAppMsgType::Ok, TEXT("Please enter a VALID name"));
+		return;
+	}
+
+	TArray<UObject*> SelectedObjects = UEditorUtilityLibrary::GetSelectedAssets();
+	uint32 counter = 0;
+
+	for (UObject* SelectedObject : SelectedObjects)
+	{
+		if (!SelectedObject)	continue;
+
+		const FString NewNameWithSufix = NewName + TEXT("_" + FString::FromInt(counter + 1));
+		UEditorUtilityLibrary::RenameAsset(SelectedObject, NewNameWithSufix);
+		++counter;
+	}
+
+	if (counter > 0)
+	{
+		ShowNotifyInfo(TEXT("Successfully renamed " + FString::FromInt(counter) + " assets"));
+	}
 }
 
 void UQuickAssetAction::FixUpRedirectors()

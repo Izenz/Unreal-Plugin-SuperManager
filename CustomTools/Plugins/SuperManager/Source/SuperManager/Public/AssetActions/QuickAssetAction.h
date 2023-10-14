@@ -36,6 +36,9 @@ public:
 	UFUNCTION(CallInEditor)
 	void RemoveUnusedAssets();
 
+	UFUNCTION(CallInEditor)
+	void RenameSelectedAssets(const FString& NewName);
+
 private:
 	TMap<UClass*, FString> PrefixMap =
 	{
