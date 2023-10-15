@@ -13,7 +13,7 @@ void UQuickAssetAction::DuplicateAssets(int32 NumOfDups)
 {
 	if (NumOfDups < 1)
 	{
-		ShowMessageDialog(EAppMsgType::Ok, TEXT("Please enter a VALID number"));
+		DebugHeader::ShowMessageDialog(EAppMsgType::Ok, TEXT("Please enter a VALID number"));
 		return;
 	}
 
@@ -38,7 +38,7 @@ void UQuickAssetAction::DuplicateAssets(int32 NumOfDups)
 	if (count > 0)
 	{
 		// Print(TEXT("Successfully duplicated " + FString::FromInt(count) + " files."), FColor::Green);
-		ShowNotifyInfo(TEXT("Successfully duplicated " + FString::FromInt(count) + " files."));
+		DebugHeader::ShowNotifyInfo(TEXT("Successfully duplicated " + FString::FromInt(count) + " files."));
 	}
 }
 
@@ -54,14 +54,14 @@ void UQuickAssetAction::AddPrefixes()
 		FString* PrefixFound = PrefixMap.Find(SelectedObject->GetClass());
 		if (!PrefixFound || PrefixFound->IsEmpty())
 		{
-			Print(TEXT("Failed to find prefix for class: " + SelectedObject->GetClass()->GetName()), FColor::Red);
+			DebugHeader::Print(TEXT("Failed to find prefix for class: " + SelectedObject->GetClass()->GetName()), FColor::Red);
 			continue;
 		}
 
 		FString OldName = SelectedObject->GetName();
 		if (OldName.StartsWith(*PrefixFound))
 		{
-			Print(OldName + TEXT(" already has suitable prefix added."), FColor::Red);
+			DebugHeader::Print(OldName + TEXT(" already has suitable prefix added."), FColor::Red);
 			continue;
 		}
 
@@ -77,7 +77,7 @@ void UQuickAssetAction::AddPrefixes()
 	}
 	if (counter > 0)
 	{
-		ShowNotifyInfo(TEXT("Successfully renamed " + FString::FromInt(counter) + " assets"));
+		DebugHeader::ShowNotifyInfo(TEXT("Successfully renamed " + FString::FromInt(counter) + " assets"));
 	}
 }
 
@@ -99,20 +99,20 @@ void UQuickAssetAction::RemoveUnusedAssets()
 
 	if (UnusedAssetsData.Num() == 0)
 	{
-		ShowMessageDialog(EAppMsgType::Ok, TEXT("No unused asset found among selected assets."), false);
+		DebugHeader::ShowMessageDialog(EAppMsgType::Ok, TEXT("No unused asset found among selected assets."), false);
 		return;
 	}
 
 	int32 numOfAssetsDeleted = ObjectTools::DeleteAssets(UnusedAssetsData);
 	if (numOfAssetsDeleted == 0)	return;
-	ShowNotifyInfo(TEXT("Successfully deleted ") + FString::FromInt(numOfAssetsDeleted) + TEXT(" unused assets."));
+	DebugHeader::ShowNotifyInfo(TEXT("Successfully deleted ") + FString::FromInt(numOfAssetsDeleted) + TEXT(" unused assets."));
 }
 
 void UQuickAssetAction::RenameSelectedAssets(const FString& NewName)
 {
 	if (NewName.IsEmpty())
 	{
-		ShowMessageDialog(EAppMsgType::Ok, TEXT("Please enter a VALID name"));
+		DebugHeader::ShowMessageDialog(EAppMsgType::Ok, TEXT("Please enter a VALID name"));
 		return;
 	}
 
@@ -130,7 +130,7 @@ void UQuickAssetAction::RenameSelectedAssets(const FString& NewName)
 
 	if (counter > 0)
 	{
-		ShowNotifyInfo(TEXT("Successfully renamed " + FString::FromInt(counter) + " assets"));
+		DebugHeader::ShowNotifyInfo(TEXT("Successfully renamed " + FString::FromInt(counter) + " assets"));
 	}
 }
 
