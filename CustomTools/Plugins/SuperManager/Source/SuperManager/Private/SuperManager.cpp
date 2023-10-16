@@ -26,10 +26,10 @@ void FSuperManagerModule::ShutdownModule()
 void FSuperManagerModule::InitCBMenuExtension()
 {
 	FContentBrowserModule& ContentBrowserModule =
-	FModuleManager::LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
+		FModuleManager::LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
 
-	TArray<FContentBrowserMenuExtender_SelectedPaths>& ContentBrowserModuleMenuExtenders = 
-	ContentBrowserModule.GetAllPathViewContextMenuExtenders();
+	TArray<FContentBrowserMenuExtender_SelectedPaths>& ContentBrowserModuleMenuExtenders =
+		ContentBrowserModule.GetAllPathViewContextMenuExtenders();
 	// Add our custom delegate to all the existing ones
 	FContentBrowserMenuExtender_SelectedPaths CustomCBMenuDelegate;
 	CustomCBMenuDelegate.BindRaw(this, &FSuperManagerModule::CustomCBMenuExtender);
@@ -70,6 +70,14 @@ void FSuperManagerModule::AddCBMenuEntry(class FMenuBuilder& MenuBuilder)
 		FText::FromString(TEXT("Safely Delete all unused assets under folder")),	// Tooltip
 		FSlateIcon(),																// Icon
 		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnDeleteUnusedAssetButtonClicked)
+	);
+
+	MenuBuilder.AddMenuEntry
+	(
+		FText::FromString(TEXT("Delete Empty Folders")),
+		FText::FromString(TEXT("Recursively delete empty folders inside selected directory")),
+		FSlateIcon(),
+		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnDeleteEmptyFoldersButtonClicked)
 	);
 }
 
@@ -120,12 +128,73 @@ void FSuperManagerModule::OnDeleteUnusedAssetButtonClicked()
 	if (UnusedAssetsDataArray.Num() > 0)
 	{
 		ObjectTools::DeleteAssets(UnusedAssetsDataArray);
-		DebugHeader::ShowNotifyInfo(TEXT("Succesfully deleted ") + FString::FromInt(UnusedAssetsDataArray.Num()) + 
+		DebugHeader::ShowNotifyInfo(TEXT("Succesfully deleted ") + FString::FromInt(UnusedAssetsDataArray.Num()) +
 			TEXT(" unused assets from ") + FolderPathsSelected[0]);
 	}
 	else
 	{
 		DebugHeader::ShowMessageDialog(EAppMsgType::Ok, TEXT("No unused asset found under selected folder"), false);
+	}
+}
+
+void FSuperManagerModule::OnDeleteEmptyFoldersButtonClicked()
+{
+	DebugHeader::Print(TEXT("Working"), FColor::Green);
+	FixUpRedirectors();
+
+	TArray<FString> FolderPathsArray = UEditorAssetLibrary::ListAssets(FolderPathsSelected[0], true, true);
+	uint32 count = 0;
+	FString EmptyFolderPaths;
+	TArray<FString> EmptyFolderPathArray;
+
+	for (const FString& FolderPath : FolderPathsArray)
+	{
+		// Avoid root folders
+		if (
+			FolderPath.Contains(TEXT("Developers")) ||
+			FolderPath.Contains(TEXT("Collections")) ||
+			FolderPath.Contains(TEXT("__ExternalActors__")) ||
+			FolderPath.Contains(TEXT("__ExternalObjects__"))
+			)
+		{
+			continue;
+		}
+
+		if (!UEditorAssetLibrary::DoesDirectoryExist(FolderPath))
+		{
+			continue;
+		}
+
+		if (!UEditorAssetLibrary::DoesDirectoryHaveAssets(FolderPath))
+		{
+			EmptyFolderPaths.Append(FolderPath);
+			EmptyFolderPaths.Append(TEXT("\n"));
+
+			EmptyFolderPathArray.Add(FolderPath);
+		}
+	}
+
+	if (EmptyFolderPathArray.Num() == 0)
+	{
+		DebugHeader::ShowMessageDialog(EAppMsgType::Ok, TEXT("No empty folder found under selected folder"), false);
+		return;
+	}
+
+	EAppReturnType::Type ConfirmationResult = DebugHeader::ShowMessageDialog(
+		EAppMsgType::OkCancel,
+		TEXT("Empty folders found in:\n") + EmptyFolderPaths + TEXT("\nWould you like to delete all?"),
+		false
+	);
+
+	if (ConfirmationResult == EAppReturnType::Cancel)	return;
+
+	for (const FString& EmptyFolderPath : EmptyFolderPathArray)
+	{
+		UEditorAssetLibrary::DeleteDirectory(EmptyFolderPath) ? ++count : DebugHeader::Print(TEXT("Failed to delete " + EmptyFolderPath), FColor::Red);
+	}
+	if (count > 0)
+	{
+		DebugHeader::ShowNotifyInfo(TEXT("Succesfully deleted " + FString::FromInt(count) + " empty folders."));
 	}
 }
 
@@ -152,7 +221,7 @@ void FSuperManagerModule::FixUpRedirectors()
 	}
 
 	FAssetToolsModule& AssetToolsModule =
-	FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
+		FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
 
 	AssetToolsModule.Get().FixupReferencers(RedirectorsToFixArray);
 }
@@ -160,5 +229,5 @@ void FSuperManagerModule::FixUpRedirectors()
 #pragma endregion
 
 #undef LOCTEXT_NAMESPACE
-	
+
 IMPLEMENT_MODULE(FSuperManagerModule, SuperManager)
