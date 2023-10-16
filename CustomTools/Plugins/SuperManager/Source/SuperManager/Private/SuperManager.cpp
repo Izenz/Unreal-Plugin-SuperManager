@@ -7,12 +7,14 @@
 #include "ObjectTools.h"
 #include "AssetRegistryModule.h"
 #include "AssetToolsModule.h"
+#include "SlateWidgets/AdvancedDeleteWidget.h"
 
 #define LOCTEXT_NAMESPACE "FSuperManagerModule"
 
 void FSuperManagerModule::StartupModule()
 {
 	InitCBMenuExtension();
+	RegisterAdvancedDeleteTab();
 }
 
 void FSuperManagerModule::ShutdownModule()
@@ -20,6 +22,23 @@ void FSuperManagerModule::ShutdownModule()
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
 }
+
+#pragma region ProcessDataForAdvancedDeleteTab
+
+bool FSuperManagerModule::DeleteAssetFromList(const FAssetData& AssetData)
+{
+	TArray<FAssetData> AssetDataForDeletion;
+	AssetDataForDeletion.Add(AssetData);
+
+	if (ObjectTools::DeleteAssets(AssetDataForDeletion) > 0)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+#pragma endregion
 
 #pragma region ContentBrowserMenuExtension
 
@@ -78,6 +97,14 @@ void FSuperManagerModule::AddCBMenuEntry(class FMenuBuilder& MenuBuilder)
 		FText::FromString(TEXT("Recursively delete empty folders inside selected directory")),
 		FSlateIcon(),
 		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnDeleteEmptyFoldersButtonClicked)
+	);
+
+	MenuBuilder.AddMenuEntry
+	(
+		FText::FromString(TEXT("Open Advanced Delete Menu")),
+		FText::FromString(TEXT("Opens Advanced Delete Menu Editor Tab")),
+		FSlateIcon(),
+		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnOpenAdvancedDeleteMenuButtonClicked)
 	);
 }
 
@@ -142,7 +169,6 @@ void FSuperManagerModule::OnDeleteUnusedAssetButtonClicked()
 
 void FSuperManagerModule::OnDeleteEmptyFoldersButtonClicked()
 {
-	DebugHeader::Print(TEXT("Working"), FColor::Green);
 	FixUpRedirectors();
 
 	TArray<FString> FolderPathsArray = UEditorAssetLibrary::ListAssets(FolderPathsSelected[0], true, true);
@@ -201,11 +227,17 @@ void FSuperManagerModule::OnDeleteEmptyFoldersButtonClicked()
 	}
 }
 
+void FSuperManagerModule::OnOpenAdvancedDeleteMenuButtonClicked()
+{
+	//DebugHeader::Print(TEXT("Working"), FColor::Green);
+	FGlobalTabmanager::Get()->TryInvokeTab(FName("AdvancedDelete"));
+}
+
 void FSuperManagerModule::FixUpRedirectors()
 {
 	TArray<UObjectRedirector*> RedirectorsToFixArray;
 	FAssetRegistryModule& AssetRegistryModule =
-	FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 
 	FARFilter Filter;
 	Filter.bRecursivePaths = true;
@@ -227,6 +259,55 @@ void FSuperManagerModule::FixUpRedirectors()
 		FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
 
 	AssetToolsModule.Get().FixupReferencers(RedirectorsToFixArray);
+}
+
+#pragma endregion
+
+#pragma region CustomEditorTab
+
+void FSuperManagerModule::RegisterAdvancedDeleteTab()
+{
+	FGlobalTabmanager::Get()->RegisterNomadTabSpawner
+	(
+		FName("AdvancedDelete"),
+		FOnSpawnTab::CreateRaw(this, &FSuperManagerModule::OnSpawnAdvancedDelete)
+	).SetDisplayName(FText::FromString(TEXT("Advanced Delete")));
+}
+
+TSharedRef<SDockTab> FSuperManagerModule::OnSpawnAdvancedDelete(const FSpawnTabArgs& TabArgs)
+{
+	return SNew(SDockTab).TabRole(ETabRole::NomadTab)
+		[
+			SNew(SAdvancedDeleteTab)
+			.AssetsDataToStore(GetAllAssetDataUnderSelectedFolder())
+		];
+}
+
+TArray<TSharedPtr<FAssetData>> FSuperManagerModule::GetAllAssetDataUnderSelectedFolder()
+{
+	TArray<TSharedPtr<FAssetData>> AvailableAssetsData;
+	TArray<FString> AssetsPathNames = UEditorAssetLibrary::ListAssets(FolderPathsSelected[0]);
+	
+	for (const FString& AssetPathName : AssetsPathNames)
+	{
+		// Avoid root folders
+		if (
+			AssetPathName.Contains(TEXT("Developers")) ||
+			AssetPathName.Contains(TEXT("Collections")) ||
+			AssetPathName.Contains(TEXT("__ExternalActors__")) ||
+			AssetPathName.Contains(TEXT("__ExternalObjects__"))
+			)
+		{
+			continue;
+		}
+
+		if (!UEditorAssetLibrary::DoesAssetExist(AssetPathName))	continue;
+	
+		const FAssetData Data = UEditorAssetLibrary::FindAssetData(AssetPathName);
+		AvailableAssetsData.Add(MakeShared<FAssetData>(Data));
+	}
+
+	return AvailableAssetsData;
 }
 
 #pragma endregion
