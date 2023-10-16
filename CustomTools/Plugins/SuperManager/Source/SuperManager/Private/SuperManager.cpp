@@ -130,6 +130,9 @@ void FSuperManagerModule::OnDeleteUnusedAssetButtonClicked()
 		ObjectTools::DeleteAssets(UnusedAssetsDataArray);
 		DebugHeader::ShowNotifyInfo(TEXT("Succesfully deleted ") + FString::FromInt(UnusedAssetsDataArray.Num()) +
 			TEXT(" unused assets from ") + FolderPathsSelected[0]);
+
+		EAppReturnType::Type ClearEmptyFoldersResult = DebugHeader::ShowMessageDialog(EAppMsgType::YesNo, TEXT("Would you like to find and clear empty folders under selected directory?"), false);
+		if (ClearEmptyFoldersResult == EAppReturnType::Yes)	OnDeleteEmptyFoldersButtonClicked();
 	}
 	else
 	{
@@ -202,7 +205,7 @@ void FSuperManagerModule::FixUpRedirectors()
 {
 	TArray<UObjectRedirector*> RedirectorsToFixArray;
 	FAssetRegistryModule& AssetRegistryModule =
-		FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 
 	FARFilter Filter;
 	Filter.bRecursivePaths = true;
