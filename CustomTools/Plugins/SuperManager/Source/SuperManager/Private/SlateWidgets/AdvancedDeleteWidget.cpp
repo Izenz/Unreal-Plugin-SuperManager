@@ -50,6 +50,27 @@ void SAdvancedDeleteTab::Construct(const FArguments& InArgs)
 			.AutoHeight()
 			[
 				SNew(SHorizontalBox)
+				// Button one
+				+SHorizontalBox::Slot()
+				.FillWidth(10.f)
+				.Padding(5.f)
+				[
+					ConstructDeleteAllButton()
+				]
+				// Button two
+				+SHorizontalBox::Slot()
+				.FillWidth(10.f)
+				.Padding(5.f)
+				[
+					ConstructSelectAllButton()
+				]
+				// Button three
+				+SHorizontalBox::Slot()
+				.FillWidth(10.f)
+				.Padding(5.f)
+				[
+					ConstructDeselectAllButton()
+				]
 			]
 
 		];
@@ -196,3 +217,66 @@ FReply SAdvancedDeleteTab::OnDeleteButtonClicked(TSharedPtr<FAssetData> ClickedA
 }
 
 #pragma endregion
+
+TSharedRef<SButton> SAdvancedDeleteTab::ConstructDeleteAllButton()
+{
+	TSharedRef<SButton> NewButton = SNew(SButton)
+		.ContentPadding(FMargin(5.f))
+		.OnClicked(this, &SAdvancedDeleteTab::OnDeleteAllButtonClicked)
+		.ButtonColorAndOpacity(FColor::FromHex("#ff4d4d"));
+
+	NewButton->SetContent(ConstructTextForTabButtons(TEXT("Delete All")));
+
+	return NewButton;
+}
+
+TSharedRef<SButton> SAdvancedDeleteTab::ConstructSelectAllButton()
+{
+	TSharedRef<SButton> NewButton = SNew(SButton)
+		.Text(FText::FromString(TEXT("Select All")))
+		.OnClicked(this, &SAdvancedDeleteTab::OnSelectAllButtonClicked);
+
+	NewButton->SetContent(ConstructTextForTabButtons(TEXT("Select All")));
+
+	return NewButton;
+}
+
+TSharedRef<SButton> SAdvancedDeleteTab::ConstructDeselectAllButton()
+{
+	TSharedRef<SButton> NewButton = SNew(SButton)
+		.Text(FText::FromString(TEXT("Deselect All")))
+		.OnClicked(this, &SAdvancedDeleteTab::OnDeselectAllButtonClicked);
+
+	NewButton->SetContent(ConstructTextForTabButtons(TEXT("Deselect All")));
+
+	return NewButton;
+}
+
+FReply SAdvancedDeleteTab::OnDeleteAllButtonClicked()
+{
+	return FReply::Handled();
+}
+
+FReply SAdvancedDeleteTab::OnSelectAllButtonClicked()
+{
+	return FReply::Handled();
+}
+
+FReply SAdvancedDeleteTab::OnDeselectAllButtonClicked()
+{
+	return FReply::Handled();
+}
+
+TSharedRef<STextBlock> SAdvancedDeleteTab::ConstructTextForTabButtons(const FString& TextContent)
+{
+	FSlateFontInfo TextFont = GetEmbossedTextFont();
+	TextFont.Size = 15;
+
+
+	TSharedRef<STextBlock> NewText = SNew(STextBlock)
+		.Text(FText::FromString(TextContent))
+		.Font(TextFont)
+		.Justification(ETextJustify::Center);
+
+	return NewText;
+}
