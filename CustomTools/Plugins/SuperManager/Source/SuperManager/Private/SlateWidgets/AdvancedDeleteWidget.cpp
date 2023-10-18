@@ -5,11 +5,14 @@
 #include "SlateBasics.h"
 #include "DebugHeader.h"
 #include "SuperManager.h"
+#include "ObjectTools.h"
 
 void SAdvancedDeleteTab::Construct(const FArguments& InArgs)
 {
 	bCanSupportFocus = true;
 	SelectedFolderAssetsData = InArgs._AssetsDataToStore;
+	CheckBoxArray.Empty();
+	AssetsDataCheckedToDelete.Empty();
 	FSlateFontInfo TitleTextFont = GetEmbossedTextFont();
 	TitleTextFont.Size = 30;
 
@@ -19,59 +22,59 @@ void SAdvancedDeleteTab::Construct(const FArguments& InArgs)
 			SNew(SVerticalBox)
 
 			// First vertical slot for title
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				SNew(STextBlock)
-				.Text(FText::FromString(TEXT("Advanced Delete")))
-				.Font(TitleTextFont)
-				.Justification(ETextJustify::Center)
-				.ColorAndOpacity(FColor::White)
-			]
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(STextBlock)
+			.Text(FText::FromString(TEXT("Advanced Delete")))
+		.Font(TitleTextFont)
+		.Justification(ETextJustify::Center)
+		.ColorAndOpacity(FColor::White)
+		]
 
-			// Second slot for drop down to specify listing filter
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
-			]
-			// Third slot for the asset list
-			+ SVerticalBox::Slot()
-				.VAlign(VAlign_Fill)
-				[
-					SNew(SScrollBox)
-					+ SScrollBox::Slot()
-				[
-					ConstructAssetListView()
-				]
-			]
-			// Fourth slot for 3 buttons
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
-				// Button one
-				+SHorizontalBox::Slot()
-				.FillWidth(10.f)
-				.Padding(5.f)
-				[
-					ConstructDeleteAllButton()
-				]
-				// Button two
-				+SHorizontalBox::Slot()
-				.FillWidth(10.f)
-				.Padding(5.f)
-				[
-					ConstructSelectAllButton()
-				]
-				// Button three
-				+SHorizontalBox::Slot()
-				.FillWidth(10.f)
-				.Padding(5.f)
-				[
-					ConstructDeselectAllButton()
-				]
-			]
+	// Second slot for drop down to specify listing filter
+	+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+		]
+	// Third slot for the asset list
+	+ SVerticalBox::Slot()
+		.VAlign(VAlign_Fill)
+		[
+			SNew(SScrollBox)
+			+ SScrollBox::Slot()
+		[
+			ConstructAssetListView()
+		]
+		]
+	// Fourth slot for 3 buttons
+	+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			// Button one
+		+ SHorizontalBox::Slot()
+		.FillWidth(10.f)
+		.Padding(5.f)
+		[
+			ConstructDeleteAllButton()
+		]
+	// Button two
+	+ SHorizontalBox::Slot()
+		.FillWidth(10.f)
+		.Padding(5.f)
+		[
+			ConstructSelectAllButton()
+		]
+	// Button three
+	+ SHorizontalBox::Slot()
+		.FillWidth(10.f)
+		.Padding(5.f)
+		[
+			ConstructDeselectAllButton()
+		]
+		]
 
 		];
 }
@@ -88,6 +91,8 @@ TSharedRef<SListView<TSharedPtr<FAssetData>>> SAdvancedDeleteTab::ConstructAsset
 
 void SAdvancedDeleteTab::RefreshAssetListView()
 {
+	AssetsDataCheckedToDelete.Empty();
+
 	if (AssetListView.IsValid())
 	{
 		AssetListView->RebuildList();
@@ -99,7 +104,7 @@ void SAdvancedDeleteTab::RefreshAssetListView()
 TSharedRef<ITableRow> SAdvancedDeleteTab::OnGenerateRowForList(TSharedPtr<FAssetData> AssetDataToDisplay, const TSharedRef<STableViewBase>& OwnerTable)
 {
 	if (!AssetDataToDisplay->IsValid())	return SNew(STableRow<TSharedPtr<FAssetData>>, OwnerTable);
-	
+
 	const FString DisplayAssetName = AssetDataToDisplay->AssetName.ToString();
 	const FString DisplayAssetClassName = AssetDataToDisplay->AssetClass.ToString();
 
@@ -113,34 +118,34 @@ TSharedRef<ITableRow> SAdvancedDeleteTab::OnGenerateRowForList(TSharedPtr<FAsset
 		SNew(STableRow<TSharedPtr<FAssetData>>, OwnerTable).Padding(FMargin(5.f))
 		[
 			SNew(SHorizontalBox)
-			// First slot for checkbox
-			+ SHorizontalBox::Slot()
-			.HAlign(HAlign_Center)
-			.VAlign(VAlign_Center)
-			.FillWidth(.1f)
-			[
-				ConstructCheckBox(AssetDataToDisplay)
-			]
-			// Second slot for displaying Asset Class Name
-			+ SHorizontalBox::Slot()
-			.HAlign(HAlign_Center)
-			.VAlign(VAlign_Center)
-			.FillWidth(.5f)
-			[
-				ConstructTextForRowWidget(DisplayAssetClassName, AssetClassNameFont)
-			]
-			// Third slot for actual Asset name
-			+ SHorizontalBox::Slot()
-			[
-				ConstructTextForRowWidget(DisplayAssetName, AssetNameFont)
-			]
-			// Forth slot for a button to delete directly
-			+ SHorizontalBox::Slot()
-			.HAlign(HAlign_Right)
-			.VAlign(VAlign_Fill)
-			[
-				ConstructButtonForRowWidget(AssetDataToDisplay)
-			]
+			// First slot for check box
+		+ SHorizontalBox::Slot()
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		.FillWidth(.1f)
+		[
+			ConstructCheckBox(AssetDataToDisplay)
+		]
+	// Second slot for displaying Asset Class Name
+	+ SHorizontalBox::Slot()
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		.FillWidth(.5f)
+		[
+			ConstructTextForRowWidget(DisplayAssetClassName, AssetClassNameFont)
+		]
+	// Third slot for actual Asset name
+	+ SHorizontalBox::Slot()
+		[
+			ConstructTextForRowWidget(DisplayAssetName, AssetNameFont)
+		]
+	// Forth slot for a button to delete directly
+	+ SHorizontalBox::Slot()
+		.HAlign(HAlign_Right)
+		.VAlign(VAlign_Fill)
+		[
+			ConstructButtonForRowWidget(AssetDataToDisplay)
+		]
 		];
 
 	return ListViewRowWidget;
@@ -153,6 +158,8 @@ TSharedRef<SCheckBox> SAdvancedDeleteTab::ConstructCheckBox(const TSharedPtr<FAs
 		.OnCheckStateChanged(this, &SAdvancedDeleteTab::OnCheckBoxStateChanged, AssetDataToDisplay)
 		.Visibility(EVisibility::Visible);
 
+	CheckBoxArray.Add(NewCheckBox);
+
 	return NewCheckBox;
 }
 
@@ -161,11 +168,16 @@ void SAdvancedDeleteTab::OnCheckBoxStateChanged(ECheckBoxState NewState, TShared
 	switch (NewState)
 	{
 	case ECheckBoxState::Unchecked:
-	DebugHeader::Print(AssetData->AssetName.ToString() + TEXT(" is now unchecked"), FColor::Red);
+		DebugHeader::Print(AssetData->AssetName.ToString() + TEXT(" is now unchecked"), FColor::Red);
+		if (AssetsDataCheckedToDelete.Contains(AssetData))
+		{
+			AssetsDataCheckedToDelete.Remove(AssetData);
+		}
 		break;
 
 	case ECheckBoxState::Checked:
 		DebugHeader::Print(AssetData->AssetName.ToString() + TEXT(" is now checked"), FColor::Green);
+		AssetsDataCheckedToDelete.AddUnique(AssetData);
 		break;
 
 	case ECheckBoxState::Undetermined:
@@ -200,7 +212,7 @@ FReply SAdvancedDeleteTab::OnDeleteButtonClicked(TSharedPtr<FAssetData> ClickedA
 {
 	FSuperManagerModule& SuperManagerModule = FModuleManager::LoadModuleChecked<FSuperManagerModule>(TEXT("SuperManager"));
 	const bool bAssetDeleted = SuperManagerModule.DeleteAssetFromList(*ClickedAssetData.Get());
-	
+
 	// Refresh list if delete is successful.
 	if (bAssetDeleted)
 	{
@@ -217,6 +229,8 @@ FReply SAdvancedDeleteTab::OnDeleteButtonClicked(TSharedPtr<FAssetData> ClickedA
 }
 
 #pragma endregion
+
+#pragma region TabButtons
 
 TSharedRef<SButton> SAdvancedDeleteTab::ConstructDeleteAllButton()
 {
@@ -254,16 +268,67 @@ TSharedRef<SButton> SAdvancedDeleteTab::ConstructDeselectAllButton()
 
 FReply SAdvancedDeleteTab::OnDeleteAllButtonClicked()
 {
+	if (AssetsDataCheckedToDelete.Num() == 0)
+	{
+		DebugHeader::ShowMessageDialog(EAppMsgType::Ok, TEXT("No asset currently selected"));
+		return FReply::Handled();
+	}
+
+	TArray<FAssetData> AssetsDataToDelete;
+	for (const TSharedPtr<FAssetData>& Data : AssetsDataCheckedToDelete)
+	{
+		AssetsDataToDelete.Add(*Data.Get());
+	}
+
+	FSuperManagerModule& SuperManagerModule =
+		FModuleManager::LoadModuleChecked<FSuperManagerModule>(TEXT("SuperManager"));
+
+	const bool bAssetsDeleted = SuperManagerModule.DeleteMultipleAssetsForAssetList(AssetsDataToDelete);
+	if (bAssetsDeleted)
+	{
+		for (const TSharedPtr<FAssetData>& DataDeleted : AssetsDataCheckedToDelete)
+		{
+			if (SelectedFolderAssetsData.Contains(DataDeleted))
+			{
+				SelectedFolderAssetsData.Remove(DataDeleted);
+			}
+		}
+
+		RefreshAssetListView();
+
+	}
+
 	return FReply::Handled();
 }
 
 FReply SAdvancedDeleteTab::OnSelectAllButtonClicked()
 {
+	if (CheckBoxArray.Num() == 0)	return FReply::Handled();
+
+	for (const TSharedRef<SCheckBox>& CheckBox : CheckBoxArray)
+	{
+		if (!CheckBox->IsChecked())
+		{
+			CheckBox->ToggleCheckedState();
+		}
+	}
+
 	return FReply::Handled();
 }
 
 FReply SAdvancedDeleteTab::OnDeselectAllButtonClicked()
 {
+	if (CheckBoxArray.Num() == 0)	return FReply::Handled();
+
+	for (const TSharedRef<SCheckBox>& CheckBox : CheckBoxArray)
+	{
+		if (CheckBox->IsChecked())
+		{
+			CheckBox->ToggleCheckedState();
+		}
+	}
+
+	return FReply::Handled();
 	return FReply::Handled();
 }
 
@@ -279,4 +344,16 @@ TSharedRef<STextBlock> SAdvancedDeleteTab::ConstructTextForTabButtons(const FStr
 		.Justification(ETextJustify::Center);
 
 	return NewText;
+}
+
+#pragma endregion
+
+bool SAdvancedDeleteTab::DeleteAssetsFromList(const TArray<FAssetData>& AssetsToDelete)
+{
+	if (ObjectTools::DeleteAssets(AssetsToDelete) > 0)
+	{
+		return true;
+	}
+
+	return false;
 }
