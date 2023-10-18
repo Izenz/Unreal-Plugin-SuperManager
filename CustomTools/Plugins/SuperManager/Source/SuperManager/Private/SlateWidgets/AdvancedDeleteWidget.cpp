@@ -7,12 +7,25 @@
 #include "SuperManager.h"
 #include "ObjectTools.h"
 
+#define LIST_ALL_ASSETS_TXT TEXT("List all available assets")
+#define LIST_UNUSED_ASSETS_TXT TEXT("List unused assets")
+#define LIST_SAME_NAME_ASSETS_TXT TEXT("List assets with same name")
+
 void SAdvancedDeleteTab::Construct(const FArguments& InArgs)
 {
 	bCanSupportFocus = true;
+
 	SelectedFolderAssetsData = InArgs._AssetsDataToStore;
+	DisplayedAssetsData = SelectedFolderAssetsData;
+
 	CheckBoxArray.Empty();
 	AssetsDataCheckedToDelete.Empty();
+	ComboBoxSourceItems.Empty();
+
+	ComboBoxSourceItems.Add(MakeShared<FString>(LIST_ALL_ASSETS_TXT));
+	ComboBoxSourceItems.Add(MakeShared<FString>(LIST_UNUSED_ASSETS_TXT));
+	ComboBoxSourceItems.Add(MakeShared<FString>(LIST_SAME_NAME_ASSETS_TXT));
+
 	FSlateFontInfo TitleTextFont = GetEmbossedTextFont();
 	TitleTextFont.Size = 30;
 
@@ -35,8 +48,26 @@ void SAdvancedDeleteTab::Construct(const FArguments& InArgs)
 	// Second slot for drop down to specify listing filter
 	+ SVerticalBox::Slot()
 		.AutoHeight()
+		.Padding(5.f)
 		[
 			SNew(SHorizontalBox)
+			// Combo box slot
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			ConstructComboBox()
+		]
+	+ SHorizontalBox::Slot()
+		.FillWidth(.6f)
+		[
+			ConstructComboHelpTexts(TEXT("Specify the listing condition in the drop down. Left mouse click an item to go to where the asset is located"),
+			ETextJustify::Center)
+		]
+	+ SHorizontalBox::Slot()
+		.FillWidth(.1f)
+		[
+			ConstructComboHelpTexts(TEXT("Current Folder:\n") + InArgs._CurrentSelectedFolder, ETextJustify::Right)
+		]
 		]
 	// Third slot for the asset list
 	+ SVerticalBox::Slot()
@@ -83,14 +114,16 @@ TSharedRef<SListView<TSharedPtr<FAssetData>>> SAdvancedDeleteTab::ConstructAsset
 {
 	AssetListView = SNew(SListView<TSharedPtr<FAssetData>>)
 		.ItemHeight(24.f)
-		.ListItemsSource(&SelectedFolderAssetsData)
-		.OnGenerateRow(this, &SAdvancedDeleteTab::OnGenerateRowForList);
+		.ListItemsSource(&DisplayedAssetsData)
+		.OnGenerateRow(this, &SAdvancedDeleteTab::OnGenerateRowForList)
+		.OnMouseButtonClick(this, &SAdvancedDeleteTab::OnRowWidgetMouseButtonClick);
 
 	return AssetListView.ToSharedRef();
 }
 
 void SAdvancedDeleteTab::RefreshAssetListView()
 {
+	CheckBoxArray.Empty();
 	AssetsDataCheckedToDelete.Empty();
 
 	if (AssetListView.IsValid())
@@ -98,6 +131,66 @@ void SAdvancedDeleteTab::RefreshAssetListView()
 		AssetListView->RebuildList();
 	}
 }
+
+#pragma region ComboBoxForList
+
+TSharedRef<SComboBox<TSharedPtr<FString>>> SAdvancedDeleteTab::ConstructComboBox()
+{
+	TSharedRef<SComboBox<TSharedPtr<FString>>> NewComboBox = SNew(SComboBox<TSharedPtr<FString>>)
+		.OptionsSource(&ComboBoxSourceItems)
+		.OnGenerateWidget(this, &SAdvancedDeleteTab::OnGenerateComboBoxContent)
+		.OnSelectionChanged(this, &SAdvancedDeleteTab::OnComboBoxSelectionChanged)
+		[
+			SAssignNew(ComboBoxDisplayTextBlock, STextBlock)
+			.Text(FText::FromString(TEXT("List assets options")))
+		];
+
+	return NewComboBox;
+}
+
+TSharedRef<SWidget> SAdvancedDeleteTab::OnGenerateComboBoxContent(TSharedPtr<FString> SourceItem)
+{
+	return SNew(STextBlock).Text(FText::FromString(*SourceItem.Get()));
+}
+
+void SAdvancedDeleteTab::OnComboBoxSelectionChanged(TSharedPtr<FString> SelectedOption, ESelectInfo::Type InSelectInfo)
+{
+	DebugHeader::Print(*SelectedOption.Get(), FColor::Cyan);
+	ComboBoxDisplayTextBlock->SetText(FText::FromString(*SelectedOption.Get()));
+
+	FSuperManagerModule& SuperManagerModule = FModuleManager::LoadModuleChecked<FSuperManagerModule>(TEXT("SuperManager"));
+
+	// Pass data for our module to filter
+	if (*SelectedOption.Get() == LIST_ALL_ASSETS_TXT)
+	{
+		// List all stored assets data
+		DisplayedAssetsData = SelectedFolderAssetsData;
+		RefreshAssetListView();
+	}
+	else if (*SelectedOption.Get() == LIST_UNUSED_ASSETS_TXT)
+	{
+		SuperManagerModule.ListUnusedAssetsForAssetList(SelectedFolderAssetsData, DisplayedAssetsData);
+		RefreshAssetListView();
+	}
+	else if (*SelectedOption.Get() == LIST_SAME_NAME_ASSETS_TXT)
+	{
+		SuperManagerModule.ListAssetsWithSameNameForAssetList(SelectedFolderAssetsData, DisplayedAssetsData);
+		RefreshAssetListView();
+	}
+}
+
+TSharedRef<STextBlock> SAdvancedDeleteTab::ConstructComboHelpTexts(const FString& TextContent, ETextJustify::Type TextJustify)
+{
+	TSharedRef<STextBlock> NewHelpText =
+		SNew(STextBlock)
+		.Text(FText::FromString(TextContent))
+		.Justification(TextJustify)
+		.AutoWrapText(true);
+
+	return NewHelpText;
+}
+
+#pragma endregion
 
 #pragma region RowWidgetForAssetListView
 
@@ -221,11 +314,21 @@ FReply SAdvancedDeleteTab::OnDeleteButtonClicked(TSharedPtr<FAssetData> ClickedA
 		{
 			SelectedFolderAssetsData.Remove(ClickedAssetData);
 		}
+		if (DisplayedAssetsData.Contains(ClickedAssetData))
+		{
+			DisplayedAssetsData.Remove(ClickedAssetData);
+		}
 		// Refresh list
 		RefreshAssetListView();
 	}
 
 	return FReply::Handled();
+}
+
+void SAdvancedDeleteTab::OnRowWidgetMouseButtonClick(TSharedPtr<FAssetData> ClickedData)
+{
+	FSuperManagerModule& SuperManagerModule = FModuleManager::LoadModuleChecked<FSuperManagerModule>(TEXT("SuperManager"));
+	SuperManagerModule.SyncContentBrowserToAsset(ClickedData->ObjectPath.ToString());
 }
 
 #pragma endregion
@@ -291,6 +394,10 @@ FReply SAdvancedDeleteTab::OnDeleteAllButtonClicked()
 			if (SelectedFolderAssetsData.Contains(DataDeleted))
 			{
 				SelectedFolderAssetsData.Remove(DataDeleted);
+			}
+			if (DisplayedAssetsData.Contains(DataDeleted))
+			{
+				DisplayedAssetsData.Remove(DataDeleted);
 			}
 		}
 

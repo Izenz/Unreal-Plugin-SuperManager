@@ -21,6 +21,7 @@ void FSuperManagerModule::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
+	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(FName("AdvancedDelete"));
 }
 
 #pragma region ProcessDataForAdvancedDeleteTab
@@ -46,6 +47,57 @@ bool FSuperManagerModule::DeleteMultipleAssetsForAssetList(const TArray<FAssetDa
 	}
 
 	return false;
+}
+
+void FSuperManagerModule::ListUnusedAssetsForAssetList(const TArray<TSharedPtr<FAssetData>>& AssetsData, TArray<TSharedPtr<FAssetData>>& OutDataArray)
+{
+	OutDataArray.Empty();
+
+	for (const TSharedPtr<FAssetData>& Data : AssetsData)
+	{
+		TArray<FString> AssetReferencers =
+			UEditorAssetLibrary::FindPackageReferencersForAsset(Data->ObjectPath.ToString());
+
+		if (AssetReferencers.Num() == 0)
+		{
+			OutDataArray.Add(Data);
+		}
+	}
+}
+
+void FSuperManagerModule::ListAssetsWithSameNameForAssetList(const TArray<TSharedPtr<FAssetData>>& AssetsData, TArray<TSharedPtr<FAssetData>>& OutDataArray)
+{
+	OutDataArray.Empty();
+	TMultiMap<FString, TSharedPtr<FAssetData>> AssetsInfoMultiMap;
+
+	for (const TSharedPtr<FAssetData>& Data : AssetsData)
+	{
+		AssetsInfoMultiMap.Emplace(Data->AssetName.ToString(), Data);
+	}
+
+	for (const TSharedPtr<FAssetData>& Data : AssetsData)
+	{
+		TArray<TSharedPtr<FAssetData>> OutAssetsData;
+		AssetsInfoMultiMap.MultiFind(Data->AssetName.ToString(), OutAssetsData);
+
+		if (OutAssetsData.Num() <= 1)	continue;
+
+		for (const TSharedPtr<FAssetData>& EqualNameData : OutAssetsData)
+		{
+			if (EqualNameData.IsValid())
+			{
+				OutDataArray.AddUnique(EqualNameData);
+			}
+		}
+	}
+
+}
+
+void FSuperManagerModule::SyncContentBrowserToAsset(const FString& AssetPath)
+{
+	TArray<FString> AssetPathArray;
+	AssetPathArray.Add(AssetPath);
+	UEditorAssetLibrary::SyncBrowserToObjects(AssetPathArray);
 }
 
 #pragma endregion
@@ -239,7 +291,8 @@ void FSuperManagerModule::OnDeleteEmptyFoldersButtonClicked()
 
 void FSuperManagerModule::OnOpenAdvancedDeleteMenuButtonClicked()
 {
-	//DebugHeader::Print(TEXT("Working"), FColor::Green);
+	FixUpRedirectors();
+
 	FGlobalTabmanager::Get()->TryInvokeTab(FName("AdvancedDelete"));
 }
 
@@ -290,14 +343,20 @@ TSharedRef<SDockTab> FSuperManagerModule::OnSpawnAdvancedDelete(const FSpawnTabA
 		[
 			SNew(SAdvancedDeleteTab)
 			.AssetsDataToStore(GetAllAssetDataUnderSelectedFolder())
+			.CurrentSelectedFolder(FolderPathsSelected[0])
 		];
 }
 
 TArray<TSharedPtr<FAssetData>> FSuperManagerModule::GetAllAssetDataUnderSelectedFolder()
 {
 	TArray<TSharedPtr<FAssetData>> AvailableAssetsData;
-	TArray<FString> AssetsPathNames = UEditorAssetLibrary::ListAssets(FolderPathsSelected[0]);
-	
+	TArray<FString> AssetsPathNames;
+
+	if (!FolderPathsSelected.IsEmpty())
+	{
+		AssetsPathNames = UEditorAssetLibrary::ListAssets(FolderPathsSelected[0]);
+	}
+
 	for (const FString& AssetPathName : AssetsPathNames)
 	{
 		// Avoid root folders
@@ -312,7 +371,7 @@ TArray<TSharedPtr<FAssetData>> FSuperManagerModule::GetAllAssetDataUnderSelected
 		}
 
 		if (!UEditorAssetLibrary::DoesAssetExist(AssetPathName))	continue;
-	
+
 		const FAssetData Data = UEditorAssetLibrary::FindAssetData(AssetPathName);
 		AvailableAssetsData.Add(MakeShared<FAssetData>(Data));
 	}

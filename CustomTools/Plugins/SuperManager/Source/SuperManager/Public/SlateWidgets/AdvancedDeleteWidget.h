@@ -8,6 +8,7 @@ class SAdvancedDeleteTab : public SCompoundWidget
 {
 	SLATE_BEGIN_ARGS(SAdvancedDeleteTab) {}
 	SLATE_ARGUMENT(TArray<TSharedPtr<FAssetData>>, AssetsDataToStore)
+	SLATE_ARGUMENT(FString, CurrentSelectedFolder)
 	SLATE_END_ARGS()
 
 public:
@@ -16,9 +17,26 @@ public:
 private:
 
 	TArray<TSharedPtr<FAssetData>> SelectedFolderAssetsData;
+	TArray<TSharedPtr<FAssetData>> DisplayedAssetsData;
 	TSharedPtr<SListView<TSharedPtr<FAssetData>>> AssetListView;
 	TSharedRef<SListView<TSharedPtr<FAssetData>>> ConstructAssetListView();
 	void RefreshAssetListView();
+
+#pragma region ComboBoxForList
+
+	TArray<TSharedPtr<FString>> ComboBoxSourceItems;
+
+	TSharedRef<SComboBox<TSharedPtr<FString>>> ConstructComboBox();
+
+	TSharedRef<SWidget> OnGenerateComboBoxContent(TSharedPtr<FString> SourceItem);
+
+	void OnComboBoxSelectionChanged(TSharedPtr<FString> SelectedOption, ESelectInfo::Type InSelectInfo);
+
+	TSharedPtr<STextBlock> ComboBoxDisplayTextBlock;
+
+	TSharedRef<STextBlock> ConstructComboHelpTexts(const FString& TextContent, ETextJustify::Type TextJustify);
+
+#pragma endregion
 
 #pragma region RowWidgetForAssetListView
 
@@ -32,6 +50,7 @@ private:
 	TSharedRef<STextBlock> ConstructTextForRowWidget(const FString& TextContent, const FSlateFontInfo& FontToUse);
 	TSharedRef<SButton> ConstructButtonForRowWidget(const TSharedPtr<FAssetData>& AssetDataToDisplay);
 	FReply OnDeleteButtonClicked(TSharedPtr<FAssetData> ClickedAssetData);
+	void OnRowWidgetMouseButtonClick(TSharedPtr<FAssetData> ClickedData);
 
 #pragma endregion
 
