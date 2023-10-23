@@ -15,21 +15,56 @@ enum class E_DuplicationAxis : uint8
 		EDA_MAX UMETA (Displayname = "Default Max"),
 };
 
-/**
- * 
- */
+USTRUCT(BlueprintType)
+
+struct FRandomActorRotation
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bRandomizeYawRot = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (EditCondition = "bRandomizeYawRot"))
+	float YawRotMin = -45.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (EditCondition = "bRandomizeYawRot"))
+	float YawRotMax = 45.f;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	bool bRandomizePitchRot = false;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, meta = (EditCondition = "bRandomizePitchRot"))
+	float PitchRotMin = -45.f;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, meta = (EditCondition = "bRandomizePitchRot"))
+	float PitchRotMax = 45.f;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	bool bRandomizeRollRot = false;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, meta = (EditCondition = "bRandomizeRollRot"))
+	float RollRotMin = -45.f;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, meta = (EditCondition = "bRandomizeRollRot"))
+	float RollRotMax = 45.f;
+
+};
+
 UCLASS()
 class SUPERMANAGER_API UQuickActorActionsWidget : public UEditorUtilityWidget
 {
 	GENERATED_BODY()
 	
 public:
+#pragma region ActorBatchSelection
 
 	UFUNCTION(BlueprintCallable)
 	void SelectAllActorsWithSimilarName();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ActorBatchSelection")
 	TEnumAsByte<ESearchCase::Type>	SearchCase = ESearchCase::IgnoreCase;
+
+#pragma endregion
 
 #pragma region ActorBatchDuplication
 
@@ -44,6 +79,16 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ActorBatchDuplication")
 	float OffsetDistance = 300.f;
+
+#pragma endregion
+
+#pragma region RandomizeActorTransform
+
+	UFUNCTION(BlueprintCallable)
+	void RandomizeActorTransform();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RandomizeActorTransform")
+	FRandomActorRotation RandomActorRotation;
 
 #pragma endregion
 

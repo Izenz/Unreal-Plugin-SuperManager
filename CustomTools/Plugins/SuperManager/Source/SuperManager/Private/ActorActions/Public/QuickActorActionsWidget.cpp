@@ -5,6 +5,8 @@
 #include "Subsystems/EditorActorSubsystem.h"
 #include "DebugHeader.h"
 
+#pragma region ActorBatchSelection
+
 void UQuickActorActionsWidget::SelectAllActorsWithSimilarName()
 {
 	if (!GetEditorActorSubsystem())	return;
@@ -43,6 +45,8 @@ void UQuickActorActionsWidget::SelectAllActorsWithSimilarName()
 		DebugHeader::ShowNotifyInfo(TEXT("No actor with similar name found."));
 	}
 }
+
+#pragma endregion
 
 #pragma region ActorBatchDuplication
 
@@ -102,6 +106,67 @@ void UQuickActorActionsWidget::DuplicateActors()
 	{
 		DebugHeader::ShowNotifyInfo(TEXT("Successfully duplicated ") + FString::FromInt(NumOfDuplicates) +
 			TEXT(" new actors."));
+	}
+}
+
+#pragma endregion
+
+#pragma region RandomizeActorTransform
+
+void UQuickActorActionsWidget::RandomizeActorTransform()
+{
+	const bool bConditionNotSet = 
+		!RandomActorRotation.bRandomizeYawRot &&
+		!RandomActorRotation.bRandomizePitchRot &&
+		!RandomActorRotation.bRandomizeRollRot;
+
+	if (bConditionNotSet)	return;
+	if (!GetEditorActorSubsystem())	return;
+
+	TArray<AActor*> SelectedActors = EditorActorSubsystem->GetSelectedLevelActors();
+	uint32 NumOfRotatedActors = 0;
+
+	if (SelectedActors.Num() == 0)
+	{
+		DebugHeader::ShowNotifyInfo(TEXT("At least one actor must be selected."));
+		return;
+	}
+
+	for (AActor* Actor : SelectedActors)
+	{
+		if (!Actor)	continue;
+
+		if (RandomActorRotation.bRandomizeYawRot)
+		{
+			const float RandomRotYawValue = FMath::RandRange(RandomActorRotation.YawRotMin, RandomActorRotation.YawRotMax);
+			Actor->AddActorWorldRotation(FRotator(0.f, RandomRotYawValue, 0.f));
+		}
+
+		if (RandomActorRotation.bRandomizePitchRot)
+		{
+			const float RandomRotPitchValue = FMath::RandRange(RandomActorRotation.YawRotMin, RandomActorRotation.YawRotMax);
+			Actor->AddActorWorldRotation(FRotator(RandomRotPitchValue, 0.f, 0.f));
+		}
+
+		if (RandomActorRotation.bRandomizeRollRot)
+		{
+			const float RandomRotRollValue = FMath::RandRange(RandomActorRotation.YawRotMin, RandomActorRotation.YawRotMax);
+			Actor->AddActorWorldRotation(FRotator(0.f, 0.f, RandomRotRollValue));
+		}
+
+		const bool bShouldIncreaseCounter =
+			RandomActorRotation.bRandomizeYawRot ||
+			RandomActorRotation.bRandomizePitchRot ||
+			RandomActorRotation.bRandomizeRollRot;
+
+		if (bShouldIncreaseCounter)	++NumOfRotatedActors;
+	}
+
+
+	if (NumOfRotatedActors > 0)
+	{
+		DebugHeader::ShowNotifyInfo(TEXT("Successfully rotated ") +
+			FString::FromInt(NumOfRotatedActors) + TEXT(" actors."));
 	}
 }
 
