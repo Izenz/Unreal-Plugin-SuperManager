@@ -44,6 +44,69 @@ void UQuickActorActionsWidget::SelectAllActorsWithSimilarName()
 	}
 }
 
+#pragma region ActorBatchDuplication
+
+void UQuickActorActionsWidget::DuplicateActors()
+{
+	if (!GetEditorActorSubsystem())	return;
+
+	TArray<AActor*> SelectedActors = EditorActorSubsystem->GetSelectedLevelActors();
+	uint32 NumOfDuplicates = 0;
+
+	if (SelectedActors.Num() == 0)
+	{
+		DebugHeader::ShowNotifyInfo(TEXT("No actor selected."));
+		return;
+	}
+
+	if (NumOfWantedDuplicates <= 0 || OffsetDistance == 0)
+	{
+		DebugHeader::ShowNotifyInfo(TEXT("Wrong duplication details. Specify valid Quantity and Offset."));
+	}
+	
+	for (AActor* Actor : SelectedActors)
+	{
+		if (!Actor)	continue;
+
+		for (int32 i = 0; i < NumOfWantedDuplicates; ++i)
+		{
+			AActor* NewActor = EditorActorSubsystem->DuplicateActor(Actor, Actor->GetWorld());
+
+			if (!NewActor)	continue;
+
+			const float DuplicationOffsetDistance = (i + 1) * OffsetDistance;
+
+			switch (DuplicationAxis)
+			{
+			case E_DuplicationAxis::EDA_XAxis:
+				NewActor->AddActorWorldOffset(FVector(DuplicationOffsetDistance, 0.f, 0.f));
+				break;
+			case E_DuplicationAxis::EDA_YAxis:
+				NewActor->AddActorWorldOffset(FVector(0.f, DuplicationOffsetDistance, 0.f));
+				break;
+			case E_DuplicationAxis::EDA_ZAxis:
+				NewActor->AddActorWorldOffset(FVector(0.f, 0.f, DuplicationOffsetDistance));
+				break;
+			case E_DuplicationAxis::EDA_MAX:
+				break;
+			default:
+				break;
+			}
+
+			EditorActorSubsystem->SetActorSelectionState(NewActor, true);
+			++NumOfDuplicates;
+		}
+	}
+
+	if (NumOfDuplicates > 0)
+	{
+		DebugHeader::ShowNotifyInfo(TEXT("Successfully duplicated ") + FString::FromInt(NumOfDuplicates) +
+			TEXT(" new actors."));
+	}
+}
+
+#pragma endregion
+
 bool UQuickActorActionsWidget::GetEditorActorSubsystem()
 {
 	if (!EditorActorSubsystem)
