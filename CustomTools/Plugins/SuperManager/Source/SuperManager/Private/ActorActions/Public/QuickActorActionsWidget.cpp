@@ -118,7 +118,9 @@ void UQuickActorActionsWidget::RandomizeActorTransform()
 	const bool bConditionNotSet = 
 		!RandomActorRotation.bRandomizeYawRot &&
 		!RandomActorRotation.bRandomizePitchRot &&
-		!RandomActorRotation.bRandomizeRollRot;
+		!RandomActorRotation.bRandomizeRollRot &&
+		!bRandomizeScale &&
+		!bRandomizeOffset;
 
 	if (bConditionNotSet)	return;
 	if (!GetEditorActorSubsystem())	return;
@@ -153,13 +155,20 @@ void UQuickActorActionsWidget::RandomizeActorTransform()
 			const float RandomRotRollValue = FMath::RandRange(RandomActorRotation.YawRotMin, RandomActorRotation.YawRotMax);
 			Actor->AddActorWorldRotation(FRotator(0.f, 0.f, RandomRotRollValue));
 		}
+		
+		if (bRandomizeScale)
+		{
+			Actor->SetActorScale3D(FVector(FMath::RandRange(ScaleMin, ScaleMax)));
+		}
 
-		const bool bShouldIncreaseCounter =
-			RandomActorRotation.bRandomizeYawRot ||
-			RandomActorRotation.bRandomizePitchRot ||
-			RandomActorRotation.bRandomizeRollRot;
+		if (bRandomizeOffset)
+		{
+			const float RandomOffsetValue = FMath::RandRange(OffsetMin, OffsetMax);
 
-		if (bShouldIncreaseCounter)	++NumOfRotatedActors;
+			Actor->AddActorWorldOffset(FVector(RandomOffsetValue, RandomOffsetValue, 0.f));
+		}
+
+		++NumOfRotatedActors;
 	}
 
 
