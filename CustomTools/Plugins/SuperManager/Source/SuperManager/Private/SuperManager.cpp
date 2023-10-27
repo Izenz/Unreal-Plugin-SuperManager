@@ -9,6 +9,9 @@
 #include "AssetToolsModule.h"
 #include "SlateWidgets/AdvancedDeleteWidget.h"
 #include "CustomStyle/SuperManagerStyle.h"
+#include "LevelEditor.h"
+#include "Engine/Selection.h"
+#include "Subsystems/EditorActorSubsystem.h"
 
 #define LOCTEXT_NAMESPACE "FSuperManagerModule"
 
@@ -18,6 +21,8 @@ void FSuperManagerModule::StartupModule()
 
 	InitCBMenuExtension();
 	RegisterAdvancedDeleteTab();
+	InitLevelEditorExtension();
+	InitCustomSelectionEvent();
 }
 
 void FSuperManagerModule::ShutdownModule()
@@ -330,6 +335,158 @@ void FSuperManagerModule::FixUpRedirectors()
 
 #pragma endregion
 
+#pragma region LevelEditorMenuExtension
+
+void FSuperManagerModule::InitLevelEditorExtension()
+{
+	FLevelEditorModule& LevelEditorModule =
+		FModuleManager::LoadModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+
+	TArray<FLevelEditorModule::FLevelViewportMenuExtender_SelectedActors>& LevelEditorMenuExtenders =
+		LevelEditorModule.GetAllLevelViewportContextMenuExtenders();
+
+	LevelEditorMenuExtenders.Add(FLevelEditorModule::FLevelViewportMenuExtender_SelectedActors::CreateRaw(this, &FSuperManagerModule::CustomLevelEditorMenuExtender));
+}
+
+TSharedRef<FExtender> FSuperManagerModule::CustomLevelEditorMenuExtender(const TSharedRef<FUICommandList> UICommandList, const TArray<AActor*> SelectedActors)
+{
+	TSharedRef<FExtender> NewMenuExtender = MakeShareable(new FExtender());
+	if (SelectedActors.Num() > 0)
+	{
+		NewMenuExtender->AddMenuExtension(
+			FName("ActorOptions"),
+			EExtensionHook::Before,
+			UICommandList,
+			FMenuExtensionDelegate::CreateRaw(this, &FSuperManagerModule::AddLevelEditorMenuEntry)
+		);
+	}
+
+	return NewMenuExtender;
+}
+
+void FSuperManagerModule::AddLevelEditorMenuEntry(class FMenuBuilder& MenuBuilder)
+{
+	MenuBuilder.AddMenuEntry
+	(
+		FText::FromString(TEXT("Disable Actor Selection")),
+		FText::FromString(TEXT("Prevents actor from being selected.")),
+		FSlateIcon(FSuperManagerStyle::GetStyleSetName(), "LevelEditor.DisableSelection"),
+		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnDisableActorSelectionPressed)
+	);
+
+	MenuBuilder.AddMenuEntry
+	(
+		FText::FromString(TEXT("Enable All Actors Selection")),
+		FText::FromString(TEXT("Lifts selection restriction on all actors.")),
+		FSlateIcon(FSuperManagerStyle::GetStyleSetName(), "LevelEditor.EnableSelection"),
+		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnEnableActorSelectionPressed)
+	);
+}
+
+void FSuperManagerModule::OnDisableActorSelectionPressed()
+{
+	if (!GetEditorActorSubsystem())	return;
+	TArray<AActor*> SelectedActors = WeakEditorActorSubsystem->GetSelectedLevelActors();
+
+	if (SelectedActors.Num() == 0)
+	{
+		DebugHeader::ShowNotifyInfo(TEXT("No actor selected."));
+		return;
+	}
+
+	FString UserNotificationMsg = TEXT("Disabled selection for objects:");
+	for (AActor* Actor : SelectedActors)
+	{
+		if (!Actor)	continue;
+		DisableActorSelection(Actor);
+		WeakEditorActorSubsystem->SetActorSelectionState(Actor, false);
+
+		UserNotificationMsg.Append(TEXT("\n"));
+		UserNotificationMsg.Append(Actor->GetActorLabel());
+	}
+
+	DebugHeader::ShowNotifyInfo(UserNotificationMsg);
+}
+
+void FSuperManagerModule::OnEnableActorSelectionPressed()
+{
+	if (!GetEditorActorSubsystem()) return;
+
+	TArray<AActor*> AllActorsInLevel = WeakEditorActorSubsystem->GetAllLevelActors();
+	TArray<AActor*> UnselectableActors;
+
+	for (AActor* ActorInLevel : AllActorsInLevel)
+	{
+		if (!ActorInLevel) continue;
+
+		if (IsActorSelectionLocked(ActorInLevel))
+		{
+			UnselectableActors.Add(ActorInLevel);
+		}
+	}
+
+	if (UnselectableActors.Num() == 0)
+	{
+		DebugHeader::ShowNotifyInfo(TEXT("No actor with restricted selection found."));
+	}
+
+	FString UserNotificationMsg = TEXT("Lifted selection constraint for objects:");
+	for (AActor* Actor : UnselectableActors)
+	{
+		EnableActorSelection(Actor);
+
+		UserNotificationMsg.Append(TEXT("\n"));
+		UserNotificationMsg.Append(Actor->GetActorLabel());
+	}
+
+	DebugHeader::ShowNotifyInfo(UserNotificationMsg);
+}
+
+void FSuperManagerModule::InitCustomSelectionEvent()
+{
+	USelection* UserSelection = GEditor->GetSelectedActors();
+	UserSelection->SelectObjectEvent.AddRaw(this, &FSuperManagerModule::OnActorSelected);
+}
+
+void FSuperManagerModule::OnActorSelected(UObject* SelectedObject)
+{
+	if (!GetEditorActorSubsystem())	return;
+	if (AActor* SelectedActor = Cast<AActor>(SelectedObject))
+	{
+		if (IsActorSelectionLocked(SelectedActor))
+		{
+			// Deselect actor immediately.
+			WeakEditorActorSubsystem->SetActorSelectionState(SelectedActor, false);
+		}
+	}
+}
+
+void FSuperManagerModule::DisableActorSelection(AActor* Actor)
+{
+	if (!Actor)	return;
+	if (!Actor->ActorHasTag(FName("Locked")))
+	{
+		Actor->Tags.Add(FName("Locked"));
+	}
+}
+
+void FSuperManagerModule::EnableActorSelection(AActor* Actor)
+{
+	if (!Actor)	return;
+	if (Actor->ActorHasTag(FName("Locked")))
+	{
+		Actor->Tags.Remove(FName("Locked"));
+	}
+}
+
+bool FSuperManagerModule::IsActorSelectionLocked(AActor* Actor)
+{
+	if (!Actor)	return false;
+	return Actor->ActorHasTag(FName("Locked"));
+}
+
+#pragma endregion
+
 #pragma region CustomEditorTab
 
 void FSuperManagerModule::RegisterAdvancedDeleteTab()
@@ -347,8 +504,8 @@ TSharedRef<SDockTab> FSuperManagerModule::OnSpawnAdvancedDelete(const FSpawnTabA
 	return SNew(SDockTab).TabRole(ETabRole::NomadTab)
 		[
 			SNew(SAdvancedDeleteTab)
-			.AssetsDataToStore(GetAllAssetDataUnderSelectedFolder())
-			.CurrentSelectedFolder(FolderPathsSelected[0])
+				.AssetsDataToStore(GetAllAssetDataUnderSelectedFolder())
+				.CurrentSelectedFolder(FolderPathsSelected[0])
 		];
 }
 
@@ -385,6 +542,16 @@ TArray<TSharedPtr<FAssetData>> FSuperManagerModule::GetAllAssetDataUnderSelected
 }
 
 #pragma endregion
+
+bool FSuperManagerModule::GetEditorActorSubsystem()
+{
+	if (!WeakEditorActorSubsystem.IsValid())
+	{
+		WeakEditorActorSubsystem = GEditor->GetEditorSubsystem<UEditorActorSubsystem>();
+	}
+
+	return WeakEditorActorSubsystem.IsValid();
+}
 
 #undef LOCTEXT_NAMESPACE
 

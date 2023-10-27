@@ -34,16 +34,21 @@ TSharedRef<FSlateStyleSet> FSuperManagerStyle::CreateSlateStyleSet()
 	const FVector2D Icon16x16(16.f, 16.f);
 
 	CustomStyleSet->SetContentRoot(IconsPath);
+
 	CustomStyleSet->Set("ContentBrowser.DeleteUnusedAssets",
 		new FSlateImageBrush(IconsPath / "DeleteUnusedAsset.png", Icon16x16));
 
-	CustomStyleSet->SetContentRoot(IconsPath);
 	CustomStyleSet->Set("ContentBrowser.DeleteEmptyFolders",
 		new FSlateImageBrush(IconsPath / "DeleteEmptyFolders.png", Icon16x16));
 
-	CustomStyleSet->SetContentRoot(IconsPath);
 	CustomStyleSet->Set("ContentBrowser.AdvanceDeletion",
 		new FSlateImageBrush(IconsPath / "AdvanceDeletion.png", Icon16x16));
+
+	CustomStyleSet->Set("LevelEditor.DisableSelection",
+		new FSlateImageBrush(IconsPath / "SelectionLock.png", Icon16x16));
+
+	CustomStyleSet->Set("LevelEditor.EnableSelection",
+		new FSlateImageBrush(IconsPath / "SelectionUnlock.png", Icon16x16));
 
 	return CustomStyleSet;
 }

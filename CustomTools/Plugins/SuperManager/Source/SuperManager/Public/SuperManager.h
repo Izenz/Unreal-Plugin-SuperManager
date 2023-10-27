@@ -39,7 +39,29 @@ private:
 	void OnDeleteEmptyFoldersButtonClicked();
 	void OnOpenAdvancedDeleteMenuButtonClicked();
 	void FixUpRedirectors();
+
 #pragma endregion
+
+#pragma region LevelEditorMenuExtension
+
+	void InitLevelEditorExtension();
+	TSharedRef<FExtender> CustomLevelEditorMenuExtender(const TSharedRef<FUICommandList> UICommandList, const TArray<AActor*> SelectedActors);
+	void AddLevelEditorMenuEntry(class FMenuBuilder& MenuBuilder);
+	void OnDisableActorSelectionPressed();
+	void OnEnableActorSelectionPressed();
+
+	void InitCustomSelectionEvent();
+	void OnActorSelected(UObject* SelectedObject);
+
+	void DisableActorSelection(AActor* Actor);
+	void EnableActorSelection(AActor* Actor);
+	bool IsActorSelectionLocked(AActor* Actor);
+
+
+#pragma endregion
+
+	TWeakObjectPtr<class UEditorActorSubsystem> WeakEditorActorSubsystem;
+	bool GetEditorActorSubsystem();
 
 #pragma region CustomEditorTab
 	void RegisterAdvancedDeleteTab();
