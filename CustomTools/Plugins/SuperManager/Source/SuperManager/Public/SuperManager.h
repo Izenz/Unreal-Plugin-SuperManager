@@ -77,15 +77,21 @@ private:
 
 #pragma endregion
 
+#pragma region CustomEditorTab
+
+	void RegisterAdvancedDeleteTab();
+
+	TSharedRef<SDockTab> OnSpawnAdvancedDelete(const FSpawnTabArgs& TabArgs);
+	void OnCustomTabClosed(TSharedRef<SDockTab> TabToClose);
+	TSharedPtr<SDockTab> CustomDockTab;
+
+	TArray<TSharedPtr<FAssetData>> GetAllAssetDataUnderSelectedFolder();
+
+#pragma endregion
+
 	TWeakObjectPtr<class UEditorActorSubsystem> WeakEditorActorSubsystem;
 	bool GetEditorActorSubsystem();
 	void RefreshSceneOutliner();
 	void UnRegisterSceneOutlinerColumnExtension();
 
-#pragma region CustomEditorTab
-	void RegisterAdvancedDeleteTab();
-
-	TSharedRef<SDockTab> OnSpawnAdvancedDelete(const FSpawnTabArgs& TabArgs);
-	TArray<TSharedPtr<FAssetData>> GetAllAssetDataUnderSelectedFolder();
-#pragma endregion
 };

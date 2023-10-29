@@ -21,31 +21,31 @@ struct FRandomActorRotation
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RandomActorAction")
 	bool bRandomizeYawRot = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (EditCondition = "bRandomizeYawRot"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RandomActorAction", meta = (EditCondition = "bRandomizeYawRot"))
 	float YawRotMin = -45.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (EditCondition = "bRandomizeYawRot"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RandomActorAction", meta = (EditCondition = "bRandomizeYawRot"))
 	float YawRotMax = 45.f;
 
-	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RandomActorAction")
 	bool bRandomizePitchRot = false;
 
-	UPROPERTY(EditAnywhere,BlueprintReadWrite, meta = (EditCondition = "bRandomizePitchRot"))
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "RandomActorAction", meta = (EditCondition = "bRandomizePitchRot"))
 	float PitchRotMin = -45.f;
 
-	UPROPERTY(EditAnywhere,BlueprintReadWrite, meta = (EditCondition = "bRandomizePitchRot"))
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "RandomActorAction", meta = (EditCondition = "bRandomizePitchRot"))
 	float PitchRotMax = 45.f;
 
-	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RandomActorAction")
 	bool bRandomizeRollRot = false;
 
-	UPROPERTY(EditAnywhere,BlueprintReadWrite, meta = (EditCondition = "bRandomizeRollRot"))
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "RandomActorAction", meta = (EditCondition = "bRandomizeRollRot"))
 	float RollRotMin = -45.f;
 
-	UPROPERTY(EditAnywhere,BlueprintReadWrite, meta = (EditCondition = "bRandomizeRollRot"))
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "RandomActorAction", meta = (EditCondition = "bRandomizeRollRot"))
 	float RollRotMax = 45.f;
 
 };
@@ -58,7 +58,7 @@ class SUPERMANAGER_API UQuickActorActionsWidget : public UEditorUtilityWidget
 public:
 #pragma region ActorBatchSelection
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "ActorBatchSelection")
 	void SelectAllActorsWithSimilarName();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ActorBatchSelection")
@@ -68,7 +68,7 @@ public:
 
 #pragma region ActorBatchDuplication
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "ActorBatchDuplication")
 	void DuplicateActors();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ActorBatchDuplication")
@@ -84,7 +84,7 @@ public:
 
 #pragma region RandomizeActorTransform
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "RandomizeActorTransform")
 	void RandomizeActorTransform();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RandomizeActorTransform")
