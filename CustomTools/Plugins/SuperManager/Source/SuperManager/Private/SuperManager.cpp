@@ -12,6 +12,9 @@
 #include "LevelEditor.h"
 #include "Engine/Selection.h"
 #include "Subsystems/EditorActorSubsystem.h"
+#include "UICommands/SuperManagerUICommands.h"
+#include "SceneOutlinerModule.h"
+#include "CustomOutlinerColumn/OutlinerSelectionDisableColumn.h"
 
 #define LOCTEXT_NAMESPACE "FSuperManagerModule"
 
@@ -21,8 +24,11 @@ void FSuperManagerModule::StartupModule()
 
 	InitCBMenuExtension();
 	RegisterAdvancedDeleteTab();
+	FSuperManagerUICommands::Register();
+	InitCustomUICommands();
 	InitLevelEditorExtension();
 	InitCustomSelectionEvent();
+	InitSceneOutlinerColumnExtension();
 }
 
 void FSuperManagerModule::ShutdownModule()
@@ -31,6 +37,8 @@ void FSuperManagerModule::ShutdownModule()
 	// we call this function before unloading the module.
 	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(FName("AdvancedDelete"));
 	FSuperManagerStyle::ShutDown();
+	FSuperManagerUICommands::Unregister();
+	UnRegisterSceneOutlinerColumnExtension();
 }
 
 #pragma region ProcessDataForAdvancedDeleteTab
@@ -342,6 +350,9 @@ void FSuperManagerModule::InitLevelEditorExtension()
 	FLevelEditorModule& LevelEditorModule =
 		FModuleManager::LoadModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
 
+	TSharedRef<FUICommandList> ExistingLevelCommands = LevelEditorModule.GetGlobalLevelEditorActions();
+	ExistingLevelCommands->Append(CustomUICommands.ToSharedRef());
+
 	TArray<FLevelEditorModule::FLevelViewportMenuExtender_SelectedActors>& LevelEditorMenuExtenders =
 		LevelEditorModule.GetAllLevelViewportContextMenuExtenders();
 
@@ -405,6 +416,7 @@ void FSuperManagerModule::OnDisableActorSelectionPressed()
 		UserNotificationMsg.Append(Actor->GetActorLabel());
 	}
 
+	RefreshSceneOutliner();
 	DebugHeader::ShowNotifyInfo(UserNotificationMsg);
 }
 
@@ -428,6 +440,7 @@ void FSuperManagerModule::OnEnableActorSelectionPressed()
 	if (UnselectableActors.Num() == 0)
 	{
 		DebugHeader::ShowNotifyInfo(TEXT("No actor with restricted selection found."));
+		return;
 	}
 
 	FString UserNotificationMsg = TEXT("Lifted selection constraint for objects:");
@@ -439,6 +452,7 @@ void FSuperManagerModule::OnEnableActorSelectionPressed()
 		UserNotificationMsg.Append(Actor->GetActorLabel());
 	}
 
+	RefreshSceneOutliner();
 	DebugHeader::ShowNotifyInfo(UserNotificationMsg);
 }
 
@@ -479,12 +493,6 @@ void FSuperManagerModule::EnableActorSelection(AActor* Actor)
 	}
 }
 
-bool FSuperManagerModule::IsActorSelectionLocked(AActor* Actor)
-{
-	if (!Actor)	return false;
-	return Actor->ActorHasTag(FName("Locked"));
-}
-
 #pragma endregion
 
 #pragma region CustomEditorTab
@@ -501,6 +509,7 @@ void FSuperManagerModule::RegisterAdvancedDeleteTab()
 
 TSharedRef<SDockTab> FSuperManagerModule::OnSpawnAdvancedDelete(const FSpawnTabArgs& TabArgs)
 {
+	if(FolderPathsSelected.Num() == 0)	return SNew(SDockTab).TabRole(ETabRole::NomadTab)
 	return SNew(SDockTab).TabRole(ETabRole::NomadTab)
 		[
 			SNew(SAdvancedDeleteTab)
@@ -542,6 +551,104 @@ TArray<TSharedPtr<FAssetData>> FSuperManagerModule::GetAllAssetDataUnderSelected
 }
 
 #pragma endregion
+
+#pragma region CustomEditorUICommands
+
+void FSuperManagerModule::InitCustomUICommands()
+{
+	CustomUICommands = MakeShareable(new FUICommandList());
+
+	CustomUICommands->MapAction(
+		FSuperManagerUICommands::Get().DisableActorSelection,
+		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnDisableActorSelectionHotkeyPressed)
+	);
+
+	CustomUICommands->MapAction(
+		FSuperManagerUICommands::Get().EnableActorSelection,
+		FExecuteAction::CreateRaw(this, &FSuperManagerModule::OnEnableActorSelectionHotkeyPressed)
+	);
+
+}
+
+void FSuperManagerModule::OnDisableActorSelectionHotkeyPressed()
+{
+	OnDisableActorSelectionPressed();
+}
+
+void FSuperManagerModule::OnEnableActorSelectionHotkeyPressed()
+{
+	OnEnableActorSelectionPressed();
+}
+
+#pragma endregion
+
+#pragma region SceneOutlinerExtension
+
+void FSuperManagerModule::InitSceneOutlinerColumnExtension()
+{
+	FSceneOutlinerModule& SceneOutlinerModule =
+		FModuleManager::LoadModuleChecked<FSceneOutlinerModule>(TEXT("SceneOutliner"));
+
+	FSceneOutlinerColumnInfo SelectionLockColumnInfo(
+		ESceneOutlinerColumnVisibility::Visible,
+		1,
+		FCreateSceneOutlinerColumn::CreateRaw(this, &FSuperManagerModule::OnCreateSelectionLockColumn)
+	);
+
+	SceneOutlinerModule.RegisterDefaultColumnType<FOutlinerSelectionDisableColumn>(SelectionLockColumnInfo);
+}
+
+TSharedRef<class ISceneOutlinerColumn> FSuperManagerModule::OnCreateSelectionLockColumn(class ISceneOutliner& SceneOutliner)
+{
+	return MakeShareable(new FOutlinerSelectionDisableColumn(SceneOutliner));
+}
+
+void FSuperManagerModule::RefreshSceneOutliner()
+{
+	FLevelEditorModule& LevelEditorModule =
+		FModuleManager::LoadModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+
+	TSharedPtr<ISceneOutliner> SceneOutliner = LevelEditorModule.GetFirstLevelEditor()->GetSceneOutliner();
+	if (SceneOutliner.IsValid())
+	{
+		SceneOutliner->FullRefresh();
+	}
+
+}
+
+void FSuperManagerModule::UnRegisterSceneOutlinerColumnExtension()
+{
+	FSceneOutlinerModule& SceneOutlinerModule =
+		FModuleManager::LoadModuleChecked<FSceneOutlinerModule>(TEXT("SceneOutliner"));
+
+	SceneOutlinerModule.UnRegisterColumnType<FOutlinerSelectionDisableColumn>();
+}
+
+#pragma endregion
+
+bool FSuperManagerModule::IsActorSelectionLocked(AActor* Actor)
+{
+	if (!Actor)	return false;
+	return Actor->ActorHasTag(FName("Locked"));
+}
+
+void FSuperManagerModule::ProcessSelectionLockForOutliner(AActor* Actor, bool bShouldDisable)
+{
+	if (!GetEditorActorSubsystem())	return;
+	if (bShouldDisable)
+	{
+		DisableActorSelection(Actor);
+		WeakEditorActorSubsystem->SetActorSelectionState(Actor, false);
+
+		DebugHeader::ShowNotifyInfo(TEXT("Disabled selection for actor: ") + Actor->GetActorLabel());
+	}
+	else
+	{
+		EnableActorSelection(Actor);
+
+		DebugHeader::ShowNotifyInfo(TEXT("Enabled selection for actor: ") + Actor->GetActorLabel());
+	}
+}
 
 bool FSuperManagerModule::GetEditorActorSubsystem()
 {

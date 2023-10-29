@@ -25,6 +25,9 @@ public:
 
 #pragma endregion
 
+	bool IsActorSelectionLocked(AActor* Actor);
+	void ProcessSelectionLockForOutliner(AActor* Actor, bool bShouldDisable);
+
 private:
 
 #pragma region ContentBrowserMenuExtension
@@ -55,13 +58,29 @@ private:
 
 	void DisableActorSelection(AActor* Actor);
 	void EnableActorSelection(AActor* Actor);
-	bool IsActorSelectionLocked(AActor* Actor);
 
+#pragma endregion
+
+#pragma region CustomEditorUICommands
+
+	TSharedPtr<class FUICommandList> CustomUICommands;
+	void InitCustomUICommands();
+	void OnDisableActorSelectionHotkeyPressed();
+	void OnEnableActorSelectionHotkeyPressed();
+
+#pragma endregion
+
+#pragma region SceneOutlinerExtension
+
+	void InitSceneOutlinerColumnExtension();
+	TSharedRef<class ISceneOutlinerColumn> OnCreateSelectionLockColumn(class ISceneOutliner& SceneOutliner);
 
 #pragma endregion
 
 	TWeakObjectPtr<class UEditorActorSubsystem> WeakEditorActorSubsystem;
 	bool GetEditorActorSubsystem();
+	void RefreshSceneOutliner();
+	void UnRegisterSceneOutlinerColumnExtension();
 
 #pragma region CustomEditorTab
 	void RegisterAdvancedDeleteTab();

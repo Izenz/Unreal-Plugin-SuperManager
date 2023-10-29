@@ -4,6 +4,7 @@
 #include "CustomStyle/SuperManagerStyle.h"
 #include "Interfaces/IPluginManager.h"
 #include "Styling/SlateStyleRegistry.h"
+#include "Styling/StyleColors.h"
 
 FName FSuperManagerStyle::StyleSetName = FName("SuperManagerStyle");
 TSharedPtr<FSlateStyleSet> FSuperManagerStyle::SuperManagerSlateStyleSet = nullptr;
@@ -49,6 +50,22 @@ TSharedRef<FSlateStyleSet> FSuperManagerStyle::CreateSlateStyleSet()
 
 	CustomStyleSet->Set("LevelEditor.EnableSelection",
 		new FSlateImageBrush(IconsPath / "SelectionUnlock.png", Icon16x16));
+
+	const FCheckBoxStyle SelectionLockToggleStyle = FCheckBoxStyle()
+		.SetCheckBoxType(ESlateCheckBoxType::ToggleButton)
+		.SetPadding(FMargin(10.f))
+
+		// Uncheck images
+		.SetUncheckedImage(FSlateImageBrush(IconsPath / "SelectionLock.png", Icon16x16, FStyleColors::White25))
+		.SetUncheckedHoveredImage(FSlateImageBrush(IconsPath / "SelectionLock.png", Icon16x16, FStyleColors::AccentBlue))
+		.SetUncheckedPressedImage(FSlateImageBrush(IconsPath / "SelectionLock.png", Icon16x16, FStyleColors::Foreground))
+
+		//Check images
+		.SetCheckedImage(FSlateImageBrush(IconsPath / "SelectionLock.png", Icon16x16, FStyleColors::Foreground))
+		.SetCheckedHoveredImage(FSlateImageBrush(IconsPath / "SelectionLock.png", Icon16x16, FStyleColors::AccentBlack))
+		.SetCheckedPressedImage(FSlateImageBrush(IconsPath / "SelectionLock.png", Icon16x16, FStyleColors::AccentGray));
+
+	CustomStyleSet->Set("SceneOutliner.SelectionLock", SelectionLockToggleStyle);
 
 	return CustomStyleSet;
 }

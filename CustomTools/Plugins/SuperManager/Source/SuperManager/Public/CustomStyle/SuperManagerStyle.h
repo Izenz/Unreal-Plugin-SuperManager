@@ -12,6 +12,7 @@ public:
 	static void ShutDown();
 
 	static FName GetStyleSetName() { return StyleSetName; };
+	static TSharedRef<FSlateStyleSet> GetSlateStyleSet() { return SuperManagerSlateStyleSet.ToSharedRef(); };
 
 private:
 
