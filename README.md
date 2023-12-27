@@ -1,4 +1,4 @@
-# unreal-custom-tools
+# Unreal-Plugin-SuperManager
 ![Unreal_Banner](https://github.com/Izenz/unreal-custom-tools/assets/34793945/4b5cad29-fc22-4010-8f21-d2a8c47f3939)
 ## Overview
 This repository contains an empty project to test different tools and functionality extensions for the **Unreal Engine 5 Editor**, contained inside a custom plugin called "Super Manager".<br />
